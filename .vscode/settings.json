@@ -1,0 +1,18 @@
+{
+  "git.enabled": false,
+  "files.exclude": {
+    // "node_modules": true,
+    ".vscode": true,
+    ".babelrc": true,
+    ".editorconfig": true,
+    ".eslintrc.json": true,
+    "jest.config.js": true,
+    "prettier.config.js": true,
+    ".gitignore": true,
+    "next-env.d.ts": true,
+    "src/__tests__": true,
+    "src/next-env.d.ts": true,
+    "src/setupTests.ts": true,
+    "tsconfig.json": true
+  }
+}
