@@ -7,7 +7,7 @@
 
 #config
 
-.vscode
+/.vscode
 
 # testing
 /coverage
