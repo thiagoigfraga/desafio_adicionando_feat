@@ -14,6 +14,7 @@ import { getPrismicClient } from '../services/prismic';
 
 import styles from './home.module.scss';
 import Header from '../components/Header';
+import commonStyles from '../styles/common.module.scss';
 
 interface Post {
   uid?: string;
@@ -32,9 +33,13 @@ interface PostPagination {
 
 interface HomeProps {
   postsPagination: PostPagination;
+  preview: boolean;
 }
 
-export default function Home({ postsPagination }: HomeProps): JSX.Element {
+export default function Home({
+  postsPagination,
+  preview,
+}: HomeProps): JSX.Element {
   const dataFormatted = postsPagination.results.map(post => {
     return {
       ...post,
@@ -117,12 +122,21 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
             </button>
           )}
         </section>
+        {preview && (
+          <aside>
+            <Link href="/api/exit-preview">
+              <a className={commonStyles.preview}>Sair do modo Preview</a>
+            </Link>
+          </aside>
+        )}
       </main>
     </>
   );
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<HomeProps> = async ({
+  preview = false,
+}) => {
   const prismic = getPrismicClient();
 
   const postsResponse = await prismic.query(
@@ -152,6 +166,7 @@ export const getStaticProps: GetStaticProps = async () => {
   return {
     props: {
       postsPagination,
+      preview,
     },
   };
 };

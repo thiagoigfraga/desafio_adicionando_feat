@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-comment-textnodes */
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { GetStaticPaths, GetStaticProps } from 'next';
@@ -5,9 +6,12 @@ import { RichText } from 'prismic-dom';
 import Prismic from '@prismicio/client';
 import { FiUser, FiCalendar, FiClock } from 'react-icons/fi';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Header from '../../components/Header';
 import { getPrismicClient } from '../../services/prismic';
 import styles from './post.module.scss';
+import commonStyles from '../../styles/common.module.scss';
+import Comments from '../../components/Comments';
 
 interface Post {
   first_publication_date: string | null;
@@ -28,9 +32,28 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  preview: boolean;
+  navigation: {
+    prevPost: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    }[];
+    nextPost: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    }[];
+  };
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({
+  post,
+  preview,
+  navigation,
+}: PostProps): JSX.Element {
   const router = useRouter();
 
   if (router.isFallback) {
@@ -107,7 +130,33 @@ export default function Post({ post }: PostProps): JSX.Element {
               );
             })}
           </div>
+          <section className={styles.navigationPages}>
+            {navigation?.prevPost.length > 0 && (
+              <div>
+                <p>{navigation.prevPost[0].data.title}</p>
+                <Link href={`/post/${navigation.prevPost[0].uid}`}>
+                  <a>Post anterior</a>
+                </Link>
+              </div>
+            )}
+            {navigation?.nextPost.length > 0 && (
+              <div>
+                <p>{navigation.nextPost[0].data.title}</p>
+                <Link href={`/post/${navigation.nextPost[0].uid}`}>
+                  <a>Próximo post</a>
+                </Link>
+              </div>
+            )}
+          </section>
         </article>
+        <Comments />
+        {preview && (
+          <aside>
+            <Link href="/api/exit-preview">
+              <a className={commonStyles.preview}>Sair do modo Preview</a>
+            </Link>
+          </aside>
+        )}
       </section>
     </>
   );
@@ -127,18 +176,39 @@ export const getStaticPaths: GetStaticPaths = async () => {
       },
     };
   });
-
   return {
     paths,
     fallback: true,
   };
 };
 
-export const getStaticProps: GetStaticProps = async context => {
+export const getStaticProps: GetStaticProps = async ({
+  params,
+  preview = false,
+  previewData,
+}) => {
   const prismic = getPrismicClient();
-  const { slug } = context.params;
-  const response = await prismic.getByUID('posts', String(slug), {});
+  const { slug } = params;
+  const response = await prismic.getByUID('posts', String(slug), {
+    ref: previewData?.ref || null,
+  });
 
+  const prevPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'posts')],
+    {
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.first_publication_date]',
+    }
+  );
+  const nextPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'posts')],
+    {
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.last_publication_date]',
+    }
+  );
   const post = {
     uid: response.uid,
     first_publication_date: response.first_publication_date,
@@ -158,9 +228,17 @@ export const getStaticProps: GetStaticProps = async context => {
     },
   };
 
+  console.log(prevPost.results);
+  console.log(nextPost.results);
+
   return {
     props: {
       post,
+      navigation: {
+        prevPost: prevPost?.results,
+        nextPost: nextPost?.results,
+      },
+      preview,
     },
   };
 };
